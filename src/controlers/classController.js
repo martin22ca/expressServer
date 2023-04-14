@@ -1,62 +1,82 @@
 const { Pool } = require('pg');
 const jwt = require('jsonwebtoken');
-const { promisify } = require("util")
-//netifly
+
+const { checkAuth } = require("../plugins/auth")
 
 const pool = require('../db')
 pool.connect();
 
 
-const getClasses = async(req, res) =>{
-    const token = req.body.token;
-    if (!token) {
-        return res.status(400).json({ 'message': 'No token' });
-    }
-    else {
-        try {
-            const decoded = await promisify(jwt.verify)(token, process.env.TOKEN_SECRET)
-            if (!decoded)
-                res.status(403).send({
-                    'message': 'Not Valid Token'
-                })
+const getClasses = async (req, res) => {
+    try {
+        const { accessToken, userId } = req.query;
+
+        if (!accessToken) {
+            res.status(403).send({
+                'message': 'No Token'
+            });
+            return null
         }
-        catch (error){
+        if (!await checkAuth(accessToken)) {
             res.status(403).send({
                 'message': 'Not Valid Token'
+            });
+            return null
+        }
+        const foundClasses = await pool.query("SELECT id,school_year ,school_section FROM student_class WHERE id_employee = $1 ORDER BY school_year DESC",
+            [userId], async (error, results) => {
+                const schoolClasses = results.rows
+                res.status(200).send({
+                    schoolClasses
+                });
+
             })
-        }
-    }
+        return null
 
-    try{
-        const token = req.query.accesToken;
-        if (!token) {
-            return res.status(400).json({ 'message': 'No token' });
-        }
 
-        const decoded = await promisify(jwt.verify)(token, process.env.TOKEN_SECRET)
-
-        if (!decoded){
-            res.status(403).send({
-                'message': 'Not Valid Token'
-            })
-        }
-        const role = req.query.role
-        if(!req){
-            return res.status(400).json({ 'message': 'No role error' });
-        }
-        else{
-            classes = await pool.query("select * from classes ")
-            res.status(200).send(
-                classes.rows
-            )
-        }
     }
     catch (error) {
         console.log(error)
         res.status(403).send({
-            'message': 'Not Valid Token'
+            'message': 'Server Error'
         })
     }
 }
 
-module.exports = {getClasses}
+const viewClass = async (req, res) => {
+    try {
+        const { accessToken, userId, } = req.query;
+
+        if (!accessToken) {
+            res.status(403).send({
+                'message': 'No Token'
+            });
+            return null
+        }
+        if (!await checkAuth(accessToken)) {
+            res.status(403).send({
+                'message': 'Not Valid Token'
+            });
+            return null
+        }
+        const foundClasses = await pool.query("SELECT id,school_year ,school_section FROM student_class WHERE id_employee = $1 ORDER BY school_year DESC",
+            [userId], async (error, results) => {
+                const schoolClasses = results.rows
+                res.status(200).send({
+                    schoolClasses
+                });
+
+            })
+        return null
+
+
+    }
+    catch (error) {
+        console.log(error)
+        res.status(403).send({
+            'message': 'Server Error'
+        })
+    }
+}
+
+module.exports = { getClasses }

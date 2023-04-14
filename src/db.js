@@ -5,7 +5,7 @@ const pool = new Pool({
 
   //connectionString: process.env.DATABASE_URL,
   user: 'admin',
-  host: '192.168.0.62',
+  host: 'localhost',
   password: 'admin111',
   port: '5432',
   database: 'schooldata',
