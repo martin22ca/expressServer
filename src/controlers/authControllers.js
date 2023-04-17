@@ -16,7 +16,6 @@ const Register = async (req, res) => {
             var eleme = [firstName, lastName, dni]
         }
 
-
         const createPersonal = await pool.query(query, eleme)
         const personalId = createPersonal.rows[0]['id']
 
