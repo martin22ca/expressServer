@@ -67,17 +67,19 @@ const getClasses = async (req, res) => {
             });
             return null
         }
-        const queryAtt = "select id as sc, school_year ,school_section  from student_class sc where id_employee =$1"
+        const queryAtt = "select id as sc, school_year ,school_section,status  from student_class sc where id_employee =$1"
 
         const schoolClassesQ = await pool.query(queryAtt, [userId])
         var schoolClasses = schoolClassesQ.rows
+        var classObjs = {}
 
         for (idx in schoolClasses) {
             schoolClasses[idx].text = schoolClasses[idx].school_year + ' - "' + schoolClasses[idx].school_section + '"'
+            classObjs[schoolClasses[idx].sc] = schoolClasses[idx]
         }
 
         res.status(200).send({
-            schoolClasses
+            classObjs
         });
         return null
 
@@ -107,8 +109,8 @@ const classInfo = async (req, res) => {
             });
             return null
         }
-        const queryAtt = "select dt.id_stud,pd.dni,pd.first_name ,pd.last_name,present,late,total " +
-            "from personal_data pd inner join (SELECT s.id as id_stud ,s.id_personal as id_pd,sum(case a.present when true then 1 else 0 end) as present ,sum(case a.late when true then 1 else 0 end) as late,  count(a.id) as total " +
+        const queryAtt = "select dt.id_stud,pd.dni,pd.first_name ,pd.last_name,present,missing,late,total " +
+            "from personal_data pd inner join (SELECT s.id as id_stud ,s.id_personal as id_pd,sum(case a.present when true then 1 else 0 end) as present ,sum(case a.present when true then 0 else 1 end) as missing ,sum(case a.late when true then 1 else 0 end) as late,  count(a.id) as total " +
             "FROM students s " +
             "inner join student_class sc on s.id_student_class = sc.id " +
             "left join attendences a on a.id_student = s.id " +
@@ -116,14 +118,11 @@ const classInfo = async (req, res) => {
             "group by s.id )dt on pd.id = dt.id_pd"
 
         const classInfoQ = await pool.query(queryAtt, [classId])
-        const scInfoQ = await pool.query("select sc.school_year,school_section,status from student_class sc where sc.id = $1", [classId])
 
         var classInfo = classInfoQ.rows
-        var scInfo = scInfoQ.rows[0]
 
         res.status(200).send({
             classInfo,
-            scInfo
         });
         return null
 

@@ -8,7 +8,7 @@ pool.connect();
 
 const viewAttendeceToday = async (req, res, next) => {
     try {
-        const { accessToken, classId } = req.query;
+        const { accessToken, classId, attDate } = req.query;
 
         if (!accessToken) {
             res.status(403).send({
@@ -22,11 +22,6 @@ const viewAttendeceToday = async (req, res, next) => {
             });
             return null
         }
-        const date = new Date();
-        let day = date.getDate();
-        let month = date.getMonth() + 1;
-        let year = date.getFullYear();
-        const currentDate = `${day}-${month}-${year}`
 
         const Attquery = "SELECT a.id as id_att ,s.id as id_stud, pd.first_name, pd.last_name, a.present,a.late, a.time_arrival, a.img_encoded,sc.status " +
             "from student_class sc  " +
@@ -35,7 +30,7 @@ const viewAttendeceToday = async (req, res, next) => {
             "left join attendences a on a.id_student = s.id  and a.att_date = $1 " +
             "where sc.id = $2 "
 
-        const attendences = await pool.query(Attquery, [currentDate, classId])
+        const attendences = await pool.query(Attquery, [attDate, classId])
 
         var attendencesRows = attendences.rows
 

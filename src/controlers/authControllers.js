@@ -12,7 +12,7 @@ const Register = async (req, res) => {
         var eleme = [firstName, lastName, dni, email]
 
         if (email == null) {
-            var query = "INSERT INTO personal_data (first_name,last_name ,dni,email) VALUES ($1, $2, $3) RETURNING ID"
+            var query = "INSERT INTO personal_data (first_name,last_name ,dni) VALUES ($1, $2, $3) RETURNING ID"
             var eleme = [firstName, lastName, dni]
         }
 
