@@ -32,7 +32,8 @@ const viewAttendeceToday = async (req, res, next) => {
 
         const attendences = await pool.query(Attquery, [attDate, classId])
 
-        var attendencesRows = attendences.rows
+        let attendencesRows = attendences.rows
+        let status = true
 
         for (row in attendencesRows) {
             const timeEntry = attendencesRows[row].time_arrival
@@ -51,7 +52,10 @@ const viewAttendeceToday = async (req, res, next) => {
                 attendencesRows[row].late = false
             }
         }
-        const status = attendencesRows[0].status
+        if (attendencesRows[0] != undefined) {
+            status = attendencesRows[0].status
+        }
+
         res.status(200).send({
             attendencesRows,
             status
