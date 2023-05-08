@@ -8,20 +8,25 @@ pool.connect();
 const Register = async (req, res) => {
     try {
         const { firstName, lastName, dni, username, password, email, role } = req.body;
-        var query = "INSERT INTO personal_data (first_name,last_name ,dni,email) VALUES ($1, $2, $3,$4) RETURNING ID"
-        var eleme = [firstName, lastName, dni, email]
+        var query = "INSERT INTO personal_data (first_name,last_name ,dni) VALUES ($1, $2, $3) RETURNING ID"
+        var eleme = [firstName, lastName, dni]
 
-        if (email == null) {
-            var query = "INSERT INTO personal_data (first_name,last_name ,dni) VALUES ($1, $2, $3) RETURNING ID"
-            var eleme = [firstName, lastName, dni]
+        if (email != null) {
+            query = "INSERT INTO personal_data (first_name,last_name ,dni,email) VALUES ($1, $2, $3,$4) RETURNING ID"
+            eleme.push(email)
         }
+        const checkDNI = await pool.query("select * from personal_data pd where pd.dni = $1", [dni])
+        if (checkDNI.rowCount > 0) return res.status(400).json({ 'message': 'DNI ya existe en la base de datos.' });
+
+        const checkusername = await pool.query("select * from employees e where user_name = $1", [username])
+        if (checkusername.rowCount > 0) return res.status(400).json({ 'message': 'Username ya existe en la base de datos.' });
 
         const createPersonal = await pool.query(query, eleme)
         const personalId = createPersonal.rows[0]['id']
 
         let passHas = await bcrpytjs.hash(password, 8)
 
-        const createEmployee = await pool.query("INSERT INTO employees (id_personal_data,id_role,user_name,user_pass) VALUES ($1, $2, $3, $4)",
+        const createEmployee = await pool.query("INSERT INTO employees (id_personal,id_role,user_name,user_pass) VALUES ($1, $2, $3, $4)",
             [personalId, role, username, passHas])
 
     } catch (error) {
@@ -40,7 +45,7 @@ const login = async (req, res, next) => {
         if (!username || !password) {
             return res.status(400).json({ 'message': 'Username y password son requeridos.' });
         }
-        const foundUser = await pool.query("SELECT employees.id,id_role,personal_data.first_name ,personal_data.last_name,user_pass,personal_data.email FROM employees INNER JOIN personal_data ON employees.id_personal_data = personal_data.id  WHERE user_name = $1", [username], async (error, results) => {
+        const foundUser = await pool.query("SELECT employees.id,id_role,personal_data.first_name ,personal_data.last_name,user_pass,personal_data.email FROM employees INNER JOIN personal_data ON employees.id_personal = personal_data.id  WHERE user_name = $1", [username], async (error, results) => {
             if (results.rowCount == 0 || !(await bcrpytjs.compare(password, results.rows[0]['user_pass']))) {
                 return res.status(401).send({
                     accessToken: null,

@@ -47,8 +47,42 @@ const homeClasses = async (req, res) => {
         })
     }
 }
-
 const getClasses = async (req, res) => {
+    try {
+        const { accessToken } = req.query;
+
+        if (!accessToken) {
+            res.status(403).send({
+                'message': 'No Token'
+            });
+            return null
+        }
+        if (!await checkAuth(accessToken)) {
+            res.status(403).send({
+                'message': 'Not Valid Token'
+            });
+            return null
+        }
+
+        const schoolClassesQ = await pool.query("select id as id_sc, school_year ,school_section,status from student_class sc")
+        var schoolClasses = schoolClassesQ.rows
+
+        res.status(200).send({
+            schoolClasses
+        });
+        return null
+
+
+    }
+    catch (error) {
+        console.log(error)
+        res.status(403).send({
+            'message': 'Server Error'
+        })
+    }
+}
+
+const getClassesByEmp = async (req, res) => {
     try {
         const { accessToken, userId } = req.query;
 
@@ -106,7 +140,7 @@ const getClassesPerso = async (req, res) => {
             });
             return null
         }
-        const queryAtt = "select sc.id as id_cls,e.id as id_emp,sc.school_year ,sc.school_section,pd.first_name,pd.last_name  from student_class sc  left join employees e on sc.id_employee =e.id  left join personal_data pd on pd.id = e.id_personal_data"
+        const queryAtt = "select sc.id as id_cls,e.id as id_emp,sc.school_year ,sc.school_section,pd.first_name,pd.last_name  from student_class sc  left join employees e on sc.id_employee =e.id  left join personal_data pd on pd.id = e.id_personal order by sc.school_year desc"
 
         const schoolClassesQ = await pool.query(queryAtt)
         var schoolClasses = schoolClassesQ.rows
@@ -276,4 +310,4 @@ const classInfo = async (req, res) => {
 }
 
 
-module.exports = { homeClasses, getClasses, classInfo, registerClass, getClassesPerso, removeClass,updateClass }
+module.exports = { homeClasses,getClasses, getClassesByEmp, classInfo, registerClass, getClassesPerso, removeClass, updateClass }
