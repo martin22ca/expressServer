@@ -24,7 +24,7 @@ const checkIp = async (req, res) => {
             });
             return null
         }
-        const queryAtt = "select * from classroom c where c.ip_classroom = $1"
+        const queryAtt = "select * from classrooms c where c.ip_classroom = $1"
 
         const classroomQ = await pool.query(queryAtt, [clientIp])
         if (classroomQ.rowCount != 0) {
@@ -78,7 +78,7 @@ const getClassrooms = async (req, res) => {
             });
             return null
         }
-        const queryAtt = "select * from classroom c where ip_classroom != $1"
+        const queryAtt = "select * from classrooms c where ip_classroom != $1"
 
         const classroomQ = await pool.query(queryAtt, [clientIp])
         const classrooms = classroomQ.rows

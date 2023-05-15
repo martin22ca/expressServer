@@ -29,8 +29,8 @@ router.put('/employees/update', updateEmployee)
 
 
 //ATTENDECE
-router.get('/attendence', viewAttendeceToday)
-router.put('/attendence/edit', editAttendance)
+router.get('/attendance', viewAttendeceToday)
+router.put('/attendance/edit', editAttendance)
 
 //CLASS
 router.get('/classes', getClasses)

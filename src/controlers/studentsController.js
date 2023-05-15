@@ -23,7 +23,7 @@ const getStudents = async (req, res) => {
             });
             return null
         }
-        const studentsQ = await pool.query("select s.id as id_stud,s.id_student_class as id_cls,pd.first_name,pd.last_name,pd.dni,pd.email,s.id_recog,r.status  from students s inner join personal_data pd on s.id_personal = pd.id left join recog r on s.id_recog = r.id  where s.id_student_class =$1", [idClass])
+        const studentsQ = await pool.query("select s.id as id_stud,s.id_student_class as id_cls,pd.first_name,pd.last_name,pd.dni,pd.email,s.id_data,r.status  from students s inner join personal_data pd on s.id_personal = pd.id left join ai_data r on s.id_data = r.id  where s.id_student_class =$1", [idClass])
         const students = studentsQ.rows
         res.status(200).send({
             students
@@ -169,14 +169,13 @@ const clean = async (req, res) => {
             fs.unlinkSync(path.join(uploadsDir, file));
         }
     }
-    const idRecogQ = await pool.query("select id_recog  from students s where id = $1", [idStud])
-    console.log(idRecogQ.rows)
+    const idRecogQ = await pool.query("select id_data from students s where id = $1", [idStud])
     const idRecog = idRecogQ.rows[0].idRecog
     if (idRecog != null) {
-        const upRecog = await pool.query("update recog set status = $1,img_folder = $2 where id = $3", [1, uploadsDir, idRecog])
+        const upRecog = await pool.query("update ai_data set status = $1,img_folder = $2 where id = $3", [1, uploadsDir, idRecog])
     } else {
-        const idRecogQ2 = await pool.query("insert into recog (status,img_folder) values (1,$1) returning ID ", [uploadsDir])
-        const upStud = await pool.query("update students set id_recog = $1 where id = $2", [idRecogQ2.rows[0].id, idStud])
+        const idRecogQ2 = await pool.query("insert into ai_data (status,img_folder) values (1,$1) returning ID ", [uploadsDir])
+        const upStud = await pool.query("update students set id_data = $1 where id = $2", [idRecogQ2.rows[0].id, idStud])
     }
     res.status(200).json({ 'message': 'Limpio!' });
 }

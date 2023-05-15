@@ -27,37 +27,37 @@ const viewAttendeceToday = async (req, res, next) => {
             "from student_class sc  " +
             "INNER JOIN students s ON sc.id = s.id_student_class " +
             "INNER JOIN personal_data pd ON s.id_personal = pd.id " +
-            "left join attendences a on a.id_student = s.id  and a.att_date = $1 " +
+            "left join attendances a on a.id_student = s.id  and a.att_date = $1 " +
             "where sc.id = $2 "
 
-        const attendences = await pool.query(Attquery, [attDate, classId])
+        const attendances = await pool.query(Attquery, [attDate, classId])
 
-        let attendencesRows = attendences.rows
+        let attendancesRows = attendances.rows
         let status = true
 
-        for (row in attendencesRows) {
-            const timeEntry = attendencesRows[row].time_arrival
-            const imgBuffer = attendencesRows[row].img_encoded
-            const present = attendencesRows[row].present
+        for (row in attendancesRows) {
+            const timeEntry = attendancesRows[row].time_arrival
+            const imgBuffer = attendancesRows[row].img_encoded
+            const present = attendancesRows[row].present
 
             if (imgBuffer != null) {
-                attendencesRows[row].img_encoded = Buffer.from(imgBuffer).toString('base64')
+                attendancesRows[row].img_encoded = Buffer.from(imgBuffer).toString('base64')
             }
             if (timeEntry != null) {
                 const words = timeEntry.split(':');
-                attendencesRows[row].time_arrival = words[0] + ":" + words[1]
+                attendancesRows[row].time_arrival = words[0] + ":" + words[1]
             }
             if (present == null) {
-                attendencesRows[row].present = false
-                attendencesRows[row].late = false
+                attendancesRows[row].present = false
+                attendancesRows[row].late = false
             }
         }
-        if (attendencesRows[0] != undefined) {
-            status = attendencesRows[0].status
+        if (attendancesRows[0] != undefined) {
+            status = attendancesRows[0].status
         }
 
         res.status(200).send({
-            attendencesRows,
+            attendancesRows,
             status
         });
         return null
@@ -87,10 +87,10 @@ const editAttendance = async (req, res, next) => {
             return null
         }
         if (idAtt == null) {
-            const att = await pool.query("insert into attendences (id_student,id_roll_call,time_arrival,present,late) values ($1,$2,$3,$4,$5)",
+            const att = await pool.query("insert into attendances (id_student,id_roll_call,time_arrival,present,late) values ($1,$2,$3,$4,$5)",
                 [idStud, idRollCall, timeArrival, present, late])
         } else {
-            const att = await pool.query("update attendences set present = $1, late =$2, time_arrival =$3 where id =$4",
+            const att = await pool.query("update attendances set present = $1, late =$2, time_arrival =$3 where id =$4",
                 [present, late, timeArrival, idAtt])
         }
         res.status(200).send({
