@@ -78,7 +78,7 @@ const getClassrooms = async (req, res) => {
             });
             return null
         }
-        const queryAtt = "select * from classrooms c where ip_classroom != $1"
+        const queryAtt = "select * from classrooms c where ip_classroom != $1 order by status desc "
 
         const classroomQ = await pool.query(queryAtt, [clientIp])
         const classrooms = classroomQ.rows

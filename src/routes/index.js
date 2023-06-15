@@ -6,7 +6,7 @@ const { login, Register, isAuth } = require("../controlers/authControllers")
 const { getEmployees, removeEmployee, updateEmployee } = require("../controlers/employeeController")
 const { checkIp, getClassrooms } = require("../controlers/classroomController")
 const { homeClasses, getClasses, getClassesByEmp, classInfo, registerClass, getClassesPerso, removeClass, updateClass } = require('../controlers/classController')
-const { viewAttendeceToday, editAttendance } = require("../controlers/attendeceController")
+const { viewAttendaceToday, editAttendance,delAttendance} = require("../controlers/attendeceController")
 const { getMessages, changeViewd, deleteMessage } = require("../controlers/messagesController")
 const { getStudents, registerStudent, updateStudent, removeStudent, setUpAi, clean } = require("../controlers/studentsController")
 
@@ -29,8 +29,9 @@ router.put('/employees/update', updateEmployee)
 
 
 //ATTENDECE
-router.get('/attendance', viewAttendeceToday)
-router.put('/attendance/edit', editAttendance)
+router.get('/attendance', viewAttendaceToday)
+router.put('/attendance/update', editAttendance) 
+router.put('/attendance/remove', delAttendance)
 
 //CLASS
 router.get('/classes', getClasses)
@@ -51,7 +52,7 @@ router.get('/', hom)
 
 //MESSAGE
 router.put('/messages/viewd', changeViewd)
-router.put('/messages/delete', deleteMessage)
+router.put('/messages/remove', deleteMessage)
 router.get('/messages', getMessages)
 
 module.exports = router;

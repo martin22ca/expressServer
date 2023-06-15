@@ -6,7 +6,7 @@ const { checkAuth } = require("../plugins/auth")
 const pool = require('../db')
 pool.connect();
 
-const viewAttendeceToday = async (req, res, next) => {
+const viewAttendaceToday = async (req, res, next) => {
     try {
         const { accessToken, classId, attDate } = req.query;
 
@@ -23,7 +23,7 @@ const viewAttendeceToday = async (req, res, next) => {
             return null
         }
 
-        const Attquery = "SELECT a.id as id_att ,s.id as id_stud, pd.first_name, pd.last_name, a.present,a.late, a.time_arrival, a.img_encoded,sc.status " +
+        const Attquery = "SELECT a.id as id_att ,s.id as id_stud, pd.first_name, pd.last_name, a.present,a.late, a.time_arrival, a.img_encoded,sc.status,a.certainty " +
             "from student_class sc  " +
             "INNER JOIN students s ON sc.id = s.id_student_class " +
             "INNER JOIN personal_data pd ON s.id_personal = pd.id " +
@@ -72,7 +72,7 @@ const viewAttendeceToday = async (req, res, next) => {
 
 const editAttendance = async (req, res, next) => {
     try {
-        const { accessToken, idRollCall, idAtt, idStud, timeArrival, present, late } = req.body;
+        const { accessToken, id_att, id_stud, att_date, time_arrival, present, late } = req.body;
 
         if (!accessToken) {
             res.status(403).send({
@@ -86,15 +86,15 @@ const editAttendance = async (req, res, next) => {
             });
             return null
         }
-        if (idAtt == null) {
-            const att = await pool.query("insert into attendances (id_student,id_roll_call,time_arrival,present,late) values ($1,$2,$3,$4,$5)",
-                [idStud, idRollCall, timeArrival, present, late])
+        if (id_att == null) {
+            const att = await pool.query("insert into attendances(id_student,time_arrival,present,late,att_date,certainty) values ($1,$2,$3,$4,$5,0)",
+                [id_stud, time_arrival, present, late, att_date])
         } else {
             const att = await pool.query("update attendances set present = $1, late =$2, time_arrival =$3 where id =$4",
-                [present, late, timeArrival, idAtt])
+                [present, late, time_arrival, id_att])
         }
         res.status(200).send({
-            "message": "ok"
+            "message": "Asistencias Actualizadas"
         });
         return null
     }
@@ -106,4 +106,36 @@ const editAttendance = async (req, res, next) => {
     }
 }
 
-module.exports = { viewAttendeceToday, editAttendance }
+const delAttendance = async (req, res, next) => {
+    try {
+        const { accessToken, id_att } = req.query;
+        
+
+        if (!accessToken) {
+            res.status(403).send({
+                'message': 'No Token'
+            });
+            return null
+        }
+        if (!await checkAuth(accessToken)) {
+            res.status(403).send({
+                'message': 'Not Valid Token'
+            });
+            return null
+        }
+        const att = await pool.query("delete from attendances where id =$1", [id_att])
+
+        res.status(200).send({
+            "message": "Asistencias Eliminada"
+        });
+        return null
+    }
+    catch (error) {
+        console.log(error)
+        res.status(403).send({
+            'message': 'Server Error'
+        })
+    }
+}
+
+module.exports = { viewAttendaceToday, editAttendance,delAttendance }

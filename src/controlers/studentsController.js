@@ -65,8 +65,6 @@ const registerStudent = async (req, res) => {
         const createPersonal = await pool.query(query, eleme)
         const personalId = createPersonal.rows[0]['id']
 
-        console.log(idClass, personalId)
-
         const createStudent = await pool.query("insert into students (id_personal,id_student_class) values ($1,$2)", [personalId, idClass])
 
         res.status(200).send({
@@ -204,7 +202,6 @@ const setUpAi = async (req, res) => {
     }
 
     const filename = path.join(uploadsDir, `${idStud}-${Date.now()}.jpg`);
-    console.log(filename)
 
     fs.writeFile(filename, decodedImage, (err) => {
         if (err) {

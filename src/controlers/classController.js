@@ -171,7 +171,7 @@ const getClassesPerso = async (req, res) => {
 const registerClass = async (req, res) => {
     try {
         const date = new Date();
-        const dateDay = date.getDate();
+        const dateDay = date.getDate() - 1;
         const dateMonth = date.getMonth() + 1;
         const dateYear = date.getFullYear();
         const currentDate = `${dateDay}-${dateMonth}-${dateYear}`
@@ -309,4 +309,4 @@ const classInfo = async (req, res) => {
 }
 
 
-module.exports = { homeClasses,getClasses, getClassesByEmp, classInfo, registerClass, getClassesPerso, removeClass, updateClass }
+module.exports = { homeClasses, getClasses, getClassesByEmp, classInfo, registerClass, getClassesPerso, removeClass, updateClass }
