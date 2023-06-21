@@ -98,8 +98,10 @@ const getClassesByEmp = async (req, res) => {
             });
             return null
         }
-        const queryAtt = "select id as sc, school_year ,school_section,status from student_class sc where id_employee =$1"
-
+        let queryAtt = 'select id as sc, school_year ,school_section,status from student_class sc where id_employee =$1'
+        if( userId == 0) {
+            queryAtt = "select id as sc, school_year ,school_section,status,$1 from student_class sc"
+        }
         const schoolClassesQ = await pool.query(queryAtt, [userId])
         var schoolClasses = schoolClassesQ.rows
         var classObjs = {}

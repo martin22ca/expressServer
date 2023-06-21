@@ -79,24 +79,19 @@ const login = async (req, res, next) => {
 
 const isAuth = async (req, res, next) => {
     try {
-        const { accessToken, userId, minRole } = req.query
+        const { accessToken, userId } = req.query
         if (!accessToken) {
             return res.status(403).json({ 'message': 'No token' });
         }
         const foundUser = await pool.query("SELECT e.id,e.id_role from employees e where e.id = $1", [userId])
         const userRole = (foundUser.rows[0].id_role)
-        if (userRole < minRole) {
-            res.status(405).send({
-                'message': 'Not Allowed'
-            })
-            return
-        }
 
         const decoded = await promisify(jwt.verify)(accessToken, process.env.TOKEN_SECRET)
 
         if (decoded)
             res.status(200).send({
-                'message': 'Valid Token'
+                'message': 'Valid Token',
+                'userRole': userRole,
             })
         else {
             res.status(400).send({
