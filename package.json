@@ -17,6 +17,7 @@
     "jsonwebtoken": "^9.0.0",
     "morgan": "^1.10.0",
     "node-fetch": "^2.6.9",
+    "nodemon": "^2.0.22",
     "pg": "^8.10.0"
   }
 }

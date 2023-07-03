@@ -216,4 +216,55 @@ const setUpAi = async (req, res) => {
     });
 }
 
-module.exports = { getStudents, registerStudent, updateStudent, removeStudent, setUpAi, clean }
+const removeAi = async (req, res) => {
+    const { accessToken, idStud } = req.body;
+
+    if (!accessToken) {
+        res.status(403).send({
+            'message': 'No Token'
+        });
+        return null
+    }
+    if (!await checkAuth(accessToken)) {
+        res.status(403).send({
+            'message': 'Not Valid Token'
+        });
+        return null
+    }
+    const homeDir = os.homedir();
+    const uploadsDir = path.join(homeDir, 'students', idStud.toString());
+
+    const upRecog = await pool.query("delete from ai_data where id = (select id_data from students s where id = $1)  ", [idStud])
+
+    if (fs.existsSync(uploadsDir)) {
+        fs.readdir(uploadsDir, (err, files) => {
+            if (err) {
+                res.status(500).send({
+                    message: 'Failed to read directory',
+                });
+                return null;
+            }
+
+            files.forEach((file) => {
+                const filePath = path.join(uploadsDir, file);
+                fs.unlink(filePath, (err) => {
+                    if (err) {
+                        console.log(`Failed to delete ${filePath}: ${err}`);
+                    } else {
+                        console.log(`Deleted ${filePath}`);
+                    }
+                });
+            });
+
+            res.status(200).send({
+                message: 'All files deleted',
+            });
+        });
+    } else {
+        res.status(404).send({
+            message: 'Directory does not exist',
+        });
+    }
+}
+
+module.exports = { getStudents, registerStudent, updateStudent, removeStudent, setUpAi, removeAi, clean }

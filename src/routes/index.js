@@ -8,14 +8,16 @@ const { checkIp, getClassrooms } = require("../controlers/classroomController")
 const { homeClasses, getClasses, getClassesByEmp, classInfo, registerClass, getClassesPerso, removeClass, updateClass } = require('../controlers/classController')
 const { viewAttendaceToday, editAttendance,delAttendance} = require("../controlers/attendeceController")
 const { getMessages, changeViewd, deleteMessage } = require("../controlers/messagesController")
-const { getStudents, registerStudent, updateStudent, removeStudent, setUpAi, clean } = require("../controlers/studentsController")
+const { getStudents, registerStudent, updateStudent, removeStudent, setUpAi, removeAi,clean } = require("../controlers/studentsController")
 
 //STUDENT
 router.get('/students', getStudents)
+
 router.put('/students/remove', removeStudent)
 router.put('/students/update', updateStudent)
 router.put('/students/clean', clean)
 router.post('/students/register', registerStudent)
+router.put('/students/removeAi', removeAi)
 router.post('/students/ai', setUpAi)
 
 //CLASSROOM
