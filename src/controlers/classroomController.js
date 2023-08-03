@@ -64,7 +64,6 @@ const getClassrooms = async (req, res) => {
     try {
 
         const { accessToken } = req.query;
-        const clientIp = req.connection.remoteAddress
 
         if (!accessToken) {
             res.status(403).send({
@@ -78,9 +77,9 @@ const getClassrooms = async (req, res) => {
             });
             return null
         }
-        const queryAtt = "select * from classrooms c where ip_classroom != $1 order by status desc "
+        const queryAtt = 'select * ,c.id as "id_classroom" from classrooms c left join student_class sc on c.id_default_class =sc.id order by c.class_number asc'
 
-        const classroomQ = await pool.query(queryAtt, [clientIp])
+        const classroomQ = await pool.query(queryAtt, [])
         const classrooms = classroomQ.rows
 
         res.status(200).send({
@@ -98,4 +97,40 @@ const getClassrooms = async (req, res) => {
     }
 }
 
-module.exports = { checkIp,getClassrooms }
+const setClass = async (req, res) => {
+    try {
+
+        const { accessToken, idClass, idClassroom } = req.body;
+
+        if (!accessToken) {
+            res.status(403).send({
+                'message': 'No Token'
+            });
+            return null
+        }
+        if (!await checkAuth(accessToken)) {
+            res.status(403).send({
+                'message': 'Not Valid Token'
+            });
+            return null
+        }
+        const queryClass = 'update classrooms set  id_default_class = $1 where id = $2'
+
+        const classroomQ = await pool.query(queryClass, [idClass,idClassroom])
+
+        res.status(200).send({
+            "classrooms": 'ok'
+        })
+        return null
+
+
+    }
+    catch (error) {
+        console.log(error)
+        res.status(403).send({
+            'message': 'Server Error'
+        })
+    }
+}
+
+module.exports = { checkIp,getClassrooms,setClass }

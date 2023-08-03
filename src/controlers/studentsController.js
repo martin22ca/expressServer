@@ -23,7 +23,7 @@ const getStudents = async (req, res) => {
             });
             return null
         }
-        const studentsQ = await pool.query("select s.id as id_stud,s.id_student_class as id_cls,pd.first_name,pd.last_name,pd.dni,pd.email,s.id_data,r.status  from students s inner join personal_data pd on s.id_personal = pd.id left join ai_data r on s.id_data = r.id  where s.id_student_class =$1", [idClass])
+        const studentsQ = await pool.query("select s.id as id_stud,s.id_student_class as id_cls,pd.first_name,pd.last_name,pd.dni,pd.email,r.id_status  from students s inner join personal_data pd on s.id_personal = pd.id left join ai_data r on s.id_data = r.id  where s.id_student_class =$1", [idClass])
         const students = studentsQ.rows
         res.status(200).send({
             students
@@ -143,6 +143,7 @@ const updateStudent = async (req, res) => {
 }
 const clean = async (req, res) => {
     const { accessToken, idStud } = req.body;
+    const working = 2
 
     if (!accessToken) {
         res.status(403).send({
@@ -170,9 +171,9 @@ const clean = async (req, res) => {
     const idRecogQ = await pool.query("select id_data from students s where id = $1", [idStud])
     const idRecog = idRecogQ.rows[0].idRecog
     if (idRecog != null) {
-        const upRecog = await pool.query("update ai_data set status = $1,img_folder = $2 where id = $3", [1, uploadsDir, idRecog])
+        const upRecog = await pool.query("update ai_data set id_status = $1 ,img_folder = $2 where id = $3", [working, uploadsDir, idRecog])
     } else {
-        const idRecogQ2 = await pool.query("insert into ai_data (status,img_folder) values (1,$1) returning ID ", [uploadsDir])
+        const idRecogQ2 = await pool.query("insert into ai_data (id_status,img_folder) values ($1,$2) returning ID", [working, uploadsDir])
         const upStud = await pool.query("update students set id_data = $1 where id = $2", [idRecogQ2.rows[0].id, idStud])
     }
     res.status(200).json({ 'message': 'Limpio!' });

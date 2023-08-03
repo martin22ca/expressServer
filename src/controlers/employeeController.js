@@ -44,6 +44,45 @@ const getEmployees = async (req, res) => {
         })
     }
 }
+const getPrecept = async (req, res) => {
+    try {
+        const { accessToken } = req.query;
+
+        if (!accessToken) {
+            res.status(403).send({
+                'message': 'No Token'
+            });
+            return null
+        }
+        if (!await checkAuth(accessToken)) {
+            res.status(403).send({
+                'message': 'Not Valid Token'
+            });
+            return null
+        }
+
+        const queryAtt = "select e.id as id_emp, e.user_name, e.id_role, pd.first_name ,pd.last_name, pd.dni ,pd.email " +
+            "from employees e inner join personal_data pd  on pd.id  = e.id_personal " +
+            " where pd.id != 0 and e.id_role = 1"
+
+        const empQ = await pool.query(queryAtt)
+
+        var employeesInfo = empQ.rows
+
+        res.status(200).send({
+            "employeesInfo": employeesInfo,
+        });
+        return null
+
+
+    }
+    catch (error) {
+        console.log(error)
+        res.status(403).send({
+            'message': 'Server Error'
+        })
+    }
+}
 const removeEmployee = async (req, res) => {
     try {
         const { accessToken, idEmp } = req.query;
@@ -62,7 +101,6 @@ const removeEmployee = async (req, res) => {
         }
 
         const removeClass = await pool.query("delete from personal_data where id = (select id_personal  from employees e where id =$1)", [idEmp])
-        console.log(req.query)
         return res.status(200).json({ 'message': 'Empleado Elimado!' });
 
 
@@ -113,4 +151,4 @@ const updateEmployee = async (req, res) => {
     }
 }
 
-module.exports = { getEmployees, removeEmployee,updateEmployee }
+module.exports = { getEmployees, getPrecept, removeEmployee,updateEmployee }

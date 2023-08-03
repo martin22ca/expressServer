@@ -64,7 +64,42 @@ const getClasses = async (req, res) => {
             return null
         }
 
-        const schoolClassesQ = await pool.query("select id as id_sc, school_year ,school_section,status from student_class sc")
+        const schoolClassesQ = await pool.query("select id as id_sc, school_year ,school_section,status from student_class sc order by school_year asc")
+        var schoolClasses = schoolClassesQ.rows
+
+        res.status(200).send({
+            schoolClasses
+        });
+        return null
+
+
+    }
+    catch (error) {
+        console.log(error)
+        res.status(403).send({
+            'message': 'Server Error'
+        })
+    }
+}
+
+const getClassesClassroom = async (req, res) => {
+    try {
+        const { accessToken } = req.query;
+
+        if (!accessToken) {
+            res.status(403).send({
+                'message': 'No Token'
+            });
+            return null
+        }
+        if (!await checkAuth(accessToken)) {
+            res.status(403).send({
+                'message': 'Not Valid Token'
+            });
+            return null
+        }
+
+        const schoolClassesQ = await pool.query("SELECT * FROM student_class sc  WHERE id NOT IN (select id_default_class from classrooms c where id_default_class notnull);")
         var schoolClasses = schoolClassesQ.rows
 
         res.status(200).send({
@@ -99,20 +134,14 @@ const getClassesByEmp = async (req, res) => {
             return null
         }
         let queryAtt = 'select id as sc, school_year ,school_section,status from student_class sc where id_employee =$1'
-        if( userId == 0) {
+        if (userId == 0) {
             queryAtt = "select id as sc, school_year ,school_section,status,$1 from student_class sc"
         }
         const schoolClassesQ = await pool.query(queryAtt, [userId])
-        var schoolClasses = schoolClassesQ.rows
-        var classObjs = {}
-
-        for (idx in schoolClasses) {
-            schoolClasses[idx].text = schoolClasses[idx].school_year + ' - "' + schoolClasses[idx].school_section + '"'
-            classObjs[schoolClasses[idx].sc] = schoolClasses[idx]
-        }
+        const schoolClasses = schoolClassesQ.rows
 
         res.status(200).send({
-            classObjs
+            schoolClasses
         });
         return null
 
@@ -142,7 +171,7 @@ const getClassesPerso = async (req, res) => {
             });
             return null
         }
-        const queryAtt = "select sc.id as id_cls,e.id as id_emp,sc.school_year ,sc.school_section,pd.first_name,pd.last_name  from student_class sc  left join employees e on sc.id_employee =e.id  left join personal_data pd on pd.id = e.id_personal order by sc.school_year desc"
+        const queryAtt = "select sc.id as id_cls, e.id as id_emp,sc.school_year ,sc.school_section,pd.first_name,pd.last_name  from student_class sc left join employees e on sc.id_employee = e.id  left join personal_data pd on pd.id = e.id_personal order by sc.school_year desc"
 
         const schoolClassesQ = await pool.query(queryAtt)
         var schoolClasses = schoolClassesQ.rows
@@ -173,7 +202,7 @@ const getClassesPerso = async (req, res) => {
 const registerClass = async (req, res) => {
     try {
         const date = new Date();
-        const dateDay = date.getDate() - 1;
+        const dateDay = date.getDate();
         const dateMonth = date.getMonth() + 1;
         const dateYear = date.getFullYear();
         const currentDate = `${dateDay}-${dateMonth}-${dateYear}`
@@ -257,7 +286,6 @@ const updateClass = async (req, res) => {
         }
 
         const updateClass = await pool.query("update student_class set school_year = $1, school_section  = $2, id_employee = $3 where id = $4", [year, section, id_emp, idClass])
-        console.log(updateClass)
         return res.status(200).json({ 'message': 'Actualizada Clase con exito!' });
 
 
@@ -311,4 +339,4 @@ const classInfo = async (req, res) => {
 }
 
 
-module.exports = { homeClasses, getClasses, getClassesByEmp, classInfo, registerClass, getClassesPerso, removeClass, updateClass }
+module.exports = { homeClasses, getClasses, getClassesByEmp, classInfo, registerClass, getClassesPerso, removeClass, updateClass, getClassesClassroom }
