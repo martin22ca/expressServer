@@ -1,6 +1,5 @@
 //archivo que inicia el server
 const express = require('express');
-const cookieParser = require('cookie-parser')
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const cors = require('cors')
@@ -30,7 +29,7 @@ app.use((err, req, res, next) => {
 });
 
 // Settings
-app.set("port", process.env.PORT || 3001);
+app.set("port", process.env.EXPRESS_PORT );
 
 app.listen(app.get("port"),'0.0.0.0');
 console.log("Server on port", app.get("port"));

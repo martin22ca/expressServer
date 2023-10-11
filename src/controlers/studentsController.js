@@ -4,7 +4,8 @@ const path = require('path');
 
 const { checkAuth } = require("../plugins/auth")
 
-const pool = require('../db')
+const pool = require('../db');
+const { response } = require('express');
 pool.connect();
 
 const getStudents = async (req, res) => {
@@ -210,11 +211,13 @@ const setUpAi = async (req, res) => {
             res.status(500).send({
                 'message': 'Error saving image to file system'
             });
-        } else {
-            res.status(200).json({ 'message': 'Actualizado info del Estudiante con exito!' });
-            return
-        }
+        } 
     });
+    const response = await fetch(process.env.FLASK_HOST+':'+process.env.FLASK_PORT+'/registerAI?' + new URLSearchParams({ idStud: idStud }).toString()).then(
+        console.log(response.response.json())
+    )
+    
+    res.status(200).json({ 'message': 'Actualizado info del Estudiante con exito!' });
 }
 
 const removeAi = async (req, res) => {
