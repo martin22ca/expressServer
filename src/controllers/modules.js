@@ -1,29 +1,14 @@
-const { checkAuth } = require("../plugins/auth")
 const fetch = require('node-fetch');
 
-const pool = require('../db')
+const pool = require('../db.js')
 pool.connect();
 
 const checkIp = async (req, res) => {
     let daemonInstalled = false
     let daemonWorking = false
     try {
-
-        const { accessToken } = req.query;
         const clientIp = req.connection.remoteAddress
 
-        if (!accessToken) {
-            res.status(403).send({
-                'message': 'No Token'
-            });
-            return null
-        }
-        if (!await checkAuth(accessToken)) {
-            res.status(403).send({
-                'message': 'Not Valid Token'
-            });
-            return null
-        }
         const queryAtt = "select * from classrooms c where c.ip_classroom = $1"
 
         const classroomQ = await pool.query(queryAtt, [clientIp])
@@ -63,22 +48,7 @@ const checkIp = async (req, res) => {
 const getClassrooms = async (req, res) => {
     try {
 
-        const { accessToken } = req.query;
-
-        if (!accessToken) {
-            res.status(403).send({
-                'message': 'No Token'
-            });
-            return null
-        }
-        if (!await checkAuth(accessToken)) {
-            res.status(403).send({
-                'message': 'Not Valid Token'
-            });
-            return null
-        }
-        const queryAtt = 'select * ,c.id as "id_classroom" from classrooms c left join student_class sc on c.id_default_class =sc.id order by c.class_number asc'
-
+        const queryAtt = 'select * ,am.id as "id_module" from ai_modules am'
         const classroomQ = await pool.query(queryAtt, [])
         const classrooms = classroomQ.rows
 
@@ -86,8 +56,6 @@ const getClassrooms = async (req, res) => {
             "classrooms": classrooms
         })
         return null
-
-
     }
     catch (error) {
         console.log(error)
@@ -100,20 +68,8 @@ const getClassrooms = async (req, res) => {
 const setClass = async (req, res) => {
     try {
 
-        const { accessToken, idClass, idClassroom } = req.body;
+        const {idClass, idClassroom } = req.body;
 
-        if (!accessToken) {
-            res.status(403).send({
-                'message': 'No Token'
-            });
-            return null
-        }
-        if (!await checkAuth(accessToken)) {
-            res.status(403).send({
-                'message': 'Not Valid Token'
-            });
-            return null
-        }
         const queryClass = 'update classrooms set  id_default_class = $1 where id = $2'
 
         const classroomQ = await pool.query(queryClass, [idClass,idClassroom])

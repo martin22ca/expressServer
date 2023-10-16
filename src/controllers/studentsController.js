@@ -2,7 +2,7 @@ const fs = require('fs');
 const os = require('os')
 const path = require('path');
 
-const { checkAuth } = require("../plugins/auth")
+const { checkAuth } = require("../middlewares/auth.js")
 
 const pool = require('../db');
 const { response } = require('express');

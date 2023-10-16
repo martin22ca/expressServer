@@ -21,6 +21,10 @@ app.use(express.json());
 
 // Routes
 app.use(require("./routes/index"));
+app.use(require("./routes/admission"));
+app.use(require("./routes/messages"));
+app.use(require("./routes/users"));
+app.use(require("./routes/roles"));
 
 app.use((err, req, res, next) => {
     return res.json({

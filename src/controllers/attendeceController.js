@@ -1,7 +1,5 @@
 const jwt = require('jsonwebtoken');
-//netifly
-
-const { checkAuth } = require("../plugins/auth")
+const { checkAuth } = require("../middlewares/auth.js")
 
 const pool = require('../db')
 pool.connect();
