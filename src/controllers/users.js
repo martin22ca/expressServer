@@ -6,12 +6,12 @@ const getUsers = async (req, res) => {
         const queryAtt = "select u.id as id_user, u.user_name, pd.first_name ,r.id as id_role,r.value ,pd.last_name, pd.dni ,pd.email, u.active from users u " +
             "inner join personal_data pd  on pd.id  = u.id_personal " +
             "inner join roles r on u.id_role = r.id where r.id != 0 "
-        const empQ = await pool.query(queryAtt)
+        const usersQ = await pool.query(queryAtt)
 
-        var employeesInfo = empQ.rows
+        const users = usersQ.rows
 
         res.status(200).send({
-            "employeesInfo": employeesInfo,
+            users,
         });
         return null
     }
@@ -38,11 +38,6 @@ const registerUser = async (req, res) => {
         let query = "INSERT INTO personal_data ( id_recog,first_name, last_name, dni,email) VALUES ($1, $2, $3, $4,$5) RETURNING id";
         const values = [idRecog, firstName, lastName, dni, email];
 
-        if (!email) {
-            query = "INSERT INTO personal_data (id_recog,first_name, last_name, dni) VALUES ($1, $2, $3,$4) RETURNING id";
-            values.pop(); // Remove the email value
-        }
-
         const createPersonal = await pool.query(query, values)
         const personalId = createPersonal.rows[0]['id']
 
@@ -57,18 +52,19 @@ const registerUser = async (req, res) => {
     }
     res.sendStatus(200)
 }
-const getPrecept = async (req, res) => {
+const getUserRole = async (req, res) => {
     try {
-        const queryAtt = "select e.id as id_emp, e.user_name, e.id_role, pd.first_name ,pd.last_name, pd.dni ,pd.email " +
-            "from employees e inner join personal_data pd  on pd.id  = e.id_personal " +
-            " where pd.id != 0 and e.id_role = 1"
+        const { role } = req.query;
 
-        const empQ = await pool.query(queryAtt)
+        const queryAtt = "select u.id as id_user, u.user_name , u.id_role , pd.first_name ,pd.last_name,concat(pd.first_name,' ',pd.last_name)  as title " +
+            "from users u inner join personal_data pd on pd.id  = u.id_personal " +
+            "where u.id_role = $1 AND u.active = true order by title asc"
 
-        var employeesInfo = empQ.rows
+        const userRoleQ = await pool.query(queryAtt, [role])
+        const userRoles = userRoleQ.rows
 
         res.status(200).send({
-            "employeesInfo": employeesInfo,
+            userRoles,
         });
         return null
 
@@ -141,4 +137,4 @@ const updateUser = async (req, res) => {
     }
 }
 
-module.exports = { getUsers, chageStateUser, registerUser, getPrecept, removeUser, updateUser }
+module.exports = { getUsers, chageStateUser, registerUser, getUserRole, removeUser, updateUser }

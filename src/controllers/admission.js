@@ -12,13 +12,20 @@ const login = async (req, res, next) => {
         if (!username || !password) {
             return res.status(400).json({ 'message': 'Username y password son requeridos.' });
         }
-        const foundUser = await pool.query("SELECT u.id,u.id_role,u.user_name,u.user_password,pd.first_name,pd.last_name,pd.email  from users u inner join personal_data pd ON u.id_personal = pd.id where u.user_name =$1 ", [username], async (error, results) => {
+        const foundUser = await pool.query("SELECT u.id,u.id_role,u.user_name,u.user_password, u.active, pd.first_name,pd.last_name,pd.email  from users u inner join personal_data pd ON u.id_personal = pd.id where u.user_name =$1 ", [username], async (error, results) => {
             if (results.rowCount == 0 || !(await bcrpytjs.compare(password, results.rows[0]['user_password']))) {
                 return res.status(401).send({
                     accessToken: null,
                     message: "Password y/o Username son invalidos"
                 });
             }
+            if( !results.rows[0]['active'] ){
+                console.log(results.rows[0]['active'] )
+                return res.status(401).send({
+                    message: "Perfil deshabilitado"
+                });
+            }
+
 
             else {
                 const id = results.rows[0]['id']

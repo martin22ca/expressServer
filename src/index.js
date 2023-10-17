@@ -25,6 +25,9 @@ app.use(require("./routes/admission"));
 app.use(require("./routes/messages"));
 app.use(require("./routes/users"));
 app.use(require("./routes/roles"));
+app.use(require("./routes/aiModules"));
+app.use(require("./routes/grades"));
+app.use(require("./routes/students"));
 
 app.use((err, req, res, next) => {
     return res.json({
@@ -33,8 +36,8 @@ app.use((err, req, res, next) => {
 });
 
 // Settings
-app.set("port", process.env.EXPRESS_PORT );
+app.set("port", process.env.EXPRESS_PORT);
 
-app.listen(app.get("port"),'0.0.0.0');
+app.listen(app.get("port"), '0.0.0.0');
 console.log("Server on port", app.get("port"));
 

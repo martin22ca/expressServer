@@ -2,10 +2,11 @@ const { Router } = require('express');
 const userRouter = Router();
 
 const { checkAuth } = require("../middlewares/auth")
-const { getUsers, chageStateUser, registerUser, getPrecept, removeUser, updateUser } = require("../controllers/users")
+const { getUsers,getUserRole, chageStateUser, registerUser, removeUser, updateUser } = require("../controllers/users")
 
 userRouter.get('/', checkAuth, getUsers)
-userRouter.get('/precept', checkAuth, getPrecept)
+userRouter.get('/role', checkAuth, getUserRole)
+userRouter.get('/precept', checkAuth, getUserRole)
 userRouter.post('/register', checkAuth, registerUser)
 userRouter.delete('/remove', checkAuth, removeUser)
 userRouter.put('/update', checkAuth, updateUser)

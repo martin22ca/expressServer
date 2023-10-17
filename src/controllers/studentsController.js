@@ -1,37 +1,17 @@
-const fs = require('fs');
-const os = require('os')
-const path = require('path');
-
-const { checkAuth } = require("../middlewares/auth.js")
-
 const pool = require('../db');
-const { response } = require('express');
 pool.connect();
 
 const getStudents = async (req, res) => {
     try {
-        const { accessToken, idClass } = req.query;
-
-        if (!accessToken) {
-            res.status(403).send({
-                'message': 'No Token'
-            });
-            return null
-        }
-        if (!await checkAuth(accessToken)) {
-            res.status(403).send({
-                'message': 'Not Valid Token'
-            });
-            return null
-        }
-        const studentsQ = await pool.query("select s.id as id_stud,s.id_student_class as id_cls,pd.first_name,pd.last_name,pd.dni,pd.email,r.id_status  from students s inner join personal_data pd on s.id_personal = pd.id left join ai_data r on s.id_data = r.id  where s.id_student_class =$1", [idClass])
+        const { idGrade } = req.query;
+        const studentsQ = await pool.query("select s.id as id_stud,s.school_number,pd.first_name,pd.last_name,pd.dni,pd.email,r.id_state  " +
+            "from students s inner join personal_data pd on s.id_personal = pd.id " +
+            "left join recognition r on pd.id_recog = r.id  where s.id_grade  =$1", [idGrade])
         const students = studentsQ.rows
         res.status(200).send({
             students
         });
         return null
-
-
     }
     catch (error) {
         console.log(error)
@@ -43,30 +23,21 @@ const getStudents = async (req, res) => {
 
 const registerStudent = async (req, res) => {
     try {
-        const { accessToken, firstName, lastName, dni, email, idClass } = req.body;
-
-        if (!accessToken) {
-            res.status(403).send({
-                'message': 'No Token'
-            });
-            return null
-        }
-        if (!await checkAuth(accessToken)) {
-            res.status(403).send({
-                'message': 'Not Valid Token'
-            });
-            return null
-        }
-        var query = "INSERT INTO personal_data (first_name,last_name ,dni,email) VALUES ($1, $2, $3, $4) RETURNING ID"
-        var eleme = [firstName, lastName, dni, email]
+        const { school_number, firstName, lastName, dni, email, idGrade } = req.body;
 
         const checkDNI = await pool.query("select * from personal_data pd where pd.dni = $1", [dni])
         if (checkDNI.rowCount > 0) return res.status(400).json({ 'message': 'DNI ya existe en la base de datos.' });
 
-        const createPersonal = await pool.query(query, eleme)
+        const createRecog = await pool.query("insert into recognition (id_state)  values (0) RETURNING ID");
+        const idRecog = createRecog.rows[0]['id']
+
+        const query = "INSERT INTO personal_data ( id_recog,first_name, last_name, dni,email) VALUES ($1, $2, $3, $4,$5) RETURNING id";
+        const values = [idRecog, firstName, lastName, dni, email];
+
+        const createPersonal = await pool.query(query, values)
         const personalId = createPersonal.rows[0]['id']
 
-        const createStudent = await pool.query("insert into students (id_personal,id_student_class) values ($1,$2)", [personalId, idClass])
+        await pool.query("insert into students (id_personal,id_grade,school_number) values ($1,$2,$3)", [personalId, idGrade, school_number])
 
         res.status(200).send({
             "message": "Nuevo Estudiante Creado",
@@ -84,20 +55,7 @@ const registerStudent = async (req, res) => {
 }
 const removeStudent = async (req, res) => {
     try {
-        const { accessToken, idStud } = req.query;
-
-        if (!accessToken) {
-            res.status(403).send({
-                'message': 'No Token'
-            });
-            return null
-        }
-        if (!await checkAuth(accessToken)) {
-            res.status(403).send({
-                'message': 'Not Valid Token'
-            });
-            return null
-        }
+        const { idStud } = req.query;
 
         const remove = await pool.query("delete from personal_data where id = (select id_personal from students where id =$1)", [idStud])
         console.log(req.query)
@@ -113,20 +71,7 @@ const removeStudent = async (req, res) => {
 
 const updateStudent = async (req, res) => {
     try {
-        const { accessToken, idStud, idCls, firstName, lastName, dni, email } = req.body;
-
-        if (!accessToken) {
-            res.status(403).send({
-                'message': 'No Token'
-            });
-            return null
-        }
-        if (!await checkAuth(accessToken)) {
-            res.status(403).send({
-                'message': 'Not Valid Token'
-            });
-            return null
-        }
+        const { idStud, idCls, firstName, lastName, dni, email } = req.body;
 
         const checkDNI = await pool.query("select * from personal_data pd where pd.dni = $1 and pd.id != (select id_personal  from students where id = $2)", [dni, idStud])
         if (checkDNI.rowCount > 0) return res.status(400).json({ 'message': 'DNI ya existe en la base de datos.' });
@@ -146,18 +91,6 @@ const clean = async (req, res) => {
     const { accessToken, idStud } = req.body;
     const working = 2
 
-    if (!accessToken) {
-        res.status(403).send({
-            'message': 'No Token'
-        });
-        return null
-    }
-    if (!await checkAuth(accessToken)) {
-        res.status(403).send({
-            'message': 'Not Valid Token'
-        });
-        return null
-    }
     const homeDir = os.homedir();
     const uploadsDir = path.join(homeDir, 'students', idStud.toString());
     if (!fs.existsSync(uploadsDir)) {
@@ -181,20 +114,8 @@ const clean = async (req, res) => {
 }
 
 const setUpAi = async (req, res) => {
-    const { accessToken, idStud } = req.body;
+    const { idStud } = req.body;
 
-    if (!accessToken) {
-        res.status(403).send({
-            'message': 'No Token'
-        });
-        return null
-    }
-    if (!await checkAuth(accessToken)) {
-        res.status(403).send({
-            'message': 'Not Valid Token'
-        });
-        return null
-    }
     const baseData = req.body.image.replace(/^data:image\/jpeg;base64,/, '');
     const decodedImage = Buffer.from(baseData, 'base64');
     const homeDir = os.homedir();
@@ -211,30 +132,18 @@ const setUpAi = async (req, res) => {
             res.status(500).send({
                 'message': 'Error saving image to file system'
             });
-        } 
+        }
     });
-    const response = await fetch(process.env.FLASK_HOST+':'+process.env.FLASK_PORT+'/registerAI?' + new URLSearchParams({ idStud: idStud }).toString()).then(
+    const response = await fetch(process.env.FLASK_HOST + ':' + process.env.FLASK_PORT + '/registerAI?' + new URLSearchParams({ idStud: idStud }).toString()).then(
         console.log(response.response.json())
     )
-    
+
     res.status(200).json({ 'message': 'Actualizado info del Estudiante con exito!' });
 }
 
 const removeAi = async (req, res) => {
-    const { accessToken, idStud } = req.body;
+    const { idStud } = req.body;
 
-    if (!accessToken) {
-        res.status(403).send({
-            'message': 'No Token'
-        });
-        return null
-    }
-    if (!await checkAuth(accessToken)) {
-        res.status(403).send({
-            'message': 'Not Valid Token'
-        });
-        return null
-    }
     const homeDir = os.homedir();
     const uploadsDir = path.join(homeDir, 'students', idStud.toString());
 
