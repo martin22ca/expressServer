@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const admissionRouter = Router();
 
-const { login, isAuth } = require("../controllers/admission")
+const { login, isAuth } = require("../controllers/admissionControllers")
 
 //AUTH
 admissionRouter.get('/auth', isAuth)

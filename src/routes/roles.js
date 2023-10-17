@@ -2,7 +2,7 @@ const { Router } = require('express');
 const rolesRouter = Router();
 
 const { checkAuth } = require("../middlewares/auth")
-const { getRoles } = require("../controllers/roles")
+const { getRoles } = require("../controllers/rolesController")
 
 //MESSAGE
 rolesRouter.get('/', checkAuth, getRoles)

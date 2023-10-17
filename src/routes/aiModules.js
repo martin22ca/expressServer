@@ -2,7 +2,7 @@ const { Router } = require('express');
 const modulesRouter = Router();
 
 const { checkAuth } = require("../middlewares/auth")
-const { getModules,getStatus} = require("../controllers/aiModules")
+const { getModules, getStatus } = require("../controllers/modulesControllers")
 
 //MESSAGE
 modulesRouter.get('/', checkAuth, getModules)

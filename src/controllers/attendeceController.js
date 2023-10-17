@@ -6,57 +6,40 @@ pool.connect();
 
 const viewAttendaceToday = async (req, res, next) => {
     try {
-        const { accessToken, classId, attDate } = req.query;
+        const { idGrade, attDate } = req.query;
 
-        if (!accessToken) {
-            res.status(403).send({
-                'message': 'No Token'
-            });
-            return null
-        }
-        if (!await checkAuth(accessToken)) {
-            res.status(403).send({
-                'message': 'Not Valid Token'
-            });
-            return null
-        }
-
-        const Attquery = "SELECT a.id as id_att ,s.id as id_stud, pd.first_name, pd.last_name, a.present,a.late, a.time_arrival, a.img_encoded,sc.status,a.certainty " +
-            "from student_class sc  " +
-            "INNER JOIN students s ON sc.id = s.id_student_class " +
+        const Attquery = "SELECT a.id as id_att ,s.id as id_stud, pd.first_name, pd.last_name, a.present, a.late, " +
+            "a.arrival,a.img_encoded ,a.certainty, a.id_module, a.observation ,s.school_number,am.module_number " +
+            "from grade g " +
+            "inner join students s on s.id_grade = g.id " +
             "INNER JOIN personal_data pd ON s.id_personal = pd.id " +
-            "left join attendances a on a.id_student = s.id  and a.att_date = $1 " +
-            "where sc.id = $2 "
+            "inner join recognition r on r.id = pd.id_recog " +
+            " left join attendances a on a.id_recog = r.id  and a.att_date = $1 " +
+            "left join ai_modules am ON a.id_module = am.id " +
+            " where s.id_grade = $2 "
+        const attendancesQ = await pool.query(Attquery, [attDate, idGrade])
 
-        const attendances = await pool.query(Attquery, [attDate, classId])
+        const attendances = attendancesQ.rows
 
-        let attendancesRows = attendances.rows
-        let status = true
-
-        for (row in attendancesRows) {
-            const timeEntry = attendancesRows[row].time_arrival
-            const imgBuffer = attendancesRows[row].img_encoded
-            const present = attendancesRows[row].present
+        for (row in attendances) {
+            const timeEntry = attendances[row].time_arrival
+            const imgBuffer = attendances[row].img_encoded
+            const present = attendances[row].present
 
             if (imgBuffer != null) {
-                attendancesRows[row].img_encoded = Buffer.from(imgBuffer).toString('base64')
+                attendances[row].img_encoded = Buffer.from(imgBuffer).toString('base64')
             }
             if (timeEntry != null) {
                 const words = timeEntry.split(':');
-                attendancesRows[row].time_arrival = words[0] + ":" + words[1]
+                attendances[row].time_arrival = words[0] + ":" + words[1]
             }
             if (present == null) {
-                attendancesRows[row].present = false
-                attendancesRows[row].late = false
+                attendances[row].present = false
+                attendances[row].late = false
             }
         }
-        if (attendancesRows[0] != undefined) {
-            status = attendancesRows[0].status
-        }
-
         res.status(200).send({
-            attendancesRows,
-            status
+            attendances
         });
         return null
     }
@@ -68,28 +51,22 @@ const viewAttendaceToday = async (req, res, next) => {
     }
 }
 
-const editAttendance = async (req, res, next) => {
+const updateAttendance = async (req, res, next) => {
     try {
-        const { accessToken, id_att, id_stud, att_date, time_arrival, present, late } = req.body;
+        const { idAtt, idStud, attDate, arrival, present, late, observation } = req.body;
 
-        if (!accessToken) {
-            res.status(403).send({
-                'message': 'No Token'
-            });
-            return null
-        }
-        if (!await checkAuth(accessToken)) {
-            res.status(403).send({
-                'message': 'Not Valid Token'
-            });
-            return null
-        }
-        if (id_att == null) {
-            const att = await pool.query("insert into attendances(id_student,time_arrival,present,late,att_date,certainty) values ($1,$2,$3,$4,$5,0)",
-                [id_stud, time_arrival, present, late, att_date])
+        const persQ = (await pool.query("select id_personal from students where id = $1 ", [idStud]))
+        const idPersonal = persQ.rows[0].id_personal
+
+        const recogQ = (await pool.query("select id_recog from personal_data pd where id = $1  ", [idPersonal]))
+        const idRecoq = recogQ.rows[0].id_recog
+
+        if (idAtt == null) {
+            await pool.query("insert into attendances(id_recog,arrival,present,late,att_date ,observation ,certainty) values ($1,$2,$3,$4,$5,$6,0)",
+                [idRecoq, arrival, present, late, attDate, observation])
         } else {
-            const att = await pool.query("update attendances set present = $1, late =$2, time_arrival =$3 where id =$4",
-                [present, late, time_arrival, id_att])
+            await pool.query("update attendances set present = $1, late =$2, arrival =$3, observation = $4 where id =$5",
+                [present, late, arrival, observation, idAtt])
         }
         res.status(200).send({
             "message": "Asistencias Actualizadas"
@@ -106,21 +83,8 @@ const editAttendance = async (req, res, next) => {
 
 const delAttendance = async (req, res, next) => {
     try {
-        const { accessToken, id_att } = req.query;
-        
+        const { id_att } = req.query;
 
-        if (!accessToken) {
-            res.status(403).send({
-                'message': 'No Token'
-            });
-            return null
-        }
-        if (!await checkAuth(accessToken)) {
-            res.status(403).send({
-                'message': 'Not Valid Token'
-            });
-            return null
-        }
         const att = await pool.query("delete from attendances where id =$1", [id_att])
 
         res.status(200).send({
@@ -136,4 +100,4 @@ const delAttendance = async (req, res, next) => {
     }
 }
 
-module.exports = { viewAttendaceToday, editAttendance,delAttendance }
+module.exports = { viewAttendaceToday, updateAttendance, delAttendance }

@@ -28,7 +28,7 @@ const registerStudent = async (req, res) => {
         const checkDNI = await pool.query("select * from personal_data pd where pd.dni = $1", [dni])
         if (checkDNI.rowCount > 0) return res.status(400).json({ 'message': 'DNI ya existe en la base de datos.' });
 
-        const createRecog = await pool.query("insert into recognition (id_state)  values (0) RETURNING ID");
+        const createRecog = await pool.query("insert into recognition (id_state) values (0) RETURNING ID");
         const idRecog = createRecog.rows[0]['id']
 
         const query = "INSERT INTO personal_data ( id_recog,first_name, last_name, dni,email) VALUES ($1, $2, $3, $4,$5) RETURNING id";
@@ -57,11 +57,17 @@ const removeStudent = async (req, res) => {
     try {
         const { idStud } = req.query;
 
-        const remove = await pool.query("delete from personal_data where id = (select id_personal from students where id =$1)", [idStud])
-        console.log(req.query)
+        const persQ = (await pool.query("select id_personal from students where id= $1 ", [idStud]))
+        const idPersonal = persQ.rows[0].id_personal
+
+        const recogQ = (await pool.query("select id_recog from personal_data pd where id = $1  ", [idPersonal]))
+        const idRecoq = recogQ.rows[0].id_recog
+
+        await pool.query("delete from students where id = $1", [idStud])
+        await pool.query("delete from personal_data where personal_data.id = $1", [idPersonal])
+        await pool.query("delete from recognition  where recognition.id = $1", [idRecoq])
+
         return res.status(200).json({ 'message': 'Estudiante Elimado!' });
-
-
     } catch (error) {
         console.log(error)
         return res.status(400).json({ 'message': 'error in database deletion.' });

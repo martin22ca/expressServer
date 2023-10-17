@@ -28,6 +28,7 @@ app.use(require("./routes/roles"));
 app.use(require("./routes/aiModules"));
 app.use(require("./routes/grades"));
 app.use(require("./routes/students"));
+app.use(require("./routes/attendances"));
 
 app.use((err, req, res, next) => {
     return res.json({

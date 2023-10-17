@@ -58,9 +58,9 @@ const gradesUser = async (req, res) => {
     try {
         const { idUser } = req.query;
 
-        let queryAtt = `select *,concat(school_year,' "',school_section,'"') as title  from grade where id_user =$1`
+        let queryAtt = `select *,concat(school_year,' "',school_section,'"') as title  from grade where id_user =$1 order by school_year asc `
         if (idUser <= 1) {
-            queryAtt = `select *,concat(school_year,' "',school_section,'"') as title, $1 from grade`
+            queryAtt = `select *,concat(school_year,' "',school_section,'"') as title, $1 from grade order by school_year asc`
         }
         const gradesQ = await pool.query(queryAtt, [idUser])
         const grades = gradesQ.rows
@@ -136,7 +136,7 @@ const updateGrade = async (req, res) => {
     }
 }
 
-const classInfo = async (req, res) => {
+const gradeInfo = async (req, res) => {
     try {
         const { classId } = req.query;
 
@@ -148,12 +148,11 @@ const classInfo = async (req, res) => {
             "where sc.id = $1 " +
             "group by s.id )dt on pd.id = dt.id_pd"
 
-        const classInfoQ = await pool.query(queryAtt, [classId])
-
-        var classInfo = classInfoQ.rows
+        const gradeInfoQ = await pool.query(queryAtt, [classId])
+        const gradeInfo = gradeInfoQ.rows
 
         res.status(200).send({
-            classInfo,
+            gradeInfo,
         });
         return null
 
@@ -168,4 +167,4 @@ const classInfo = async (req, res) => {
 }
 
 
-module.exports = { getGrades, homeClasses, gradesUser, classInfo, registerGrade, removeGrade, updateGrade }
+module.exports = { getGrades, homeClasses, gradesUser, gradeInfo, registerGrade, removeGrade, updateGrade }

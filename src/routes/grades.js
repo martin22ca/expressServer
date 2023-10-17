@@ -2,7 +2,7 @@ const { Router } = require('express');
 const gradesRouter = Router();
 
 const { checkAuth } = require("../middlewares/auth")
-const { getGrades, homeClasses, gradesUser, classInfo, registerGrade, removeGrade, updateGrade } = require('../controllers/grades')
+const { getGrades, homeClasses, gradesUser, gradeInfo, registerGrade, removeGrade, updateGrade } = require('../controllers/gradesControllers')
 
 
 gradesRouter.get('/', checkAuth, getGrades)
@@ -11,7 +11,7 @@ gradesRouter.put('/remove', checkAuth, removeGrade)
 gradesRouter.put('/update', checkAuth, updateGrade)
 gradesRouter.get('/user', checkAuth, gradesUser)
 
-gradesRouter.get('/info', checkAuth, classInfo)
+gradesRouter.get('/info', checkAuth, gradeInfo)
 gradesRouter.get('/home', checkAuth, homeClasses)
 
 

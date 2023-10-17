@@ -2,7 +2,7 @@ const { Router } = require('express');
 const messagesRouter = Router();
 
 const { checkAuth } = require("../middlewares/auth")
-const { getMsgs, viewdMsg, deleteMsg } = require("../controllers/messages")
+const { getMsgs, viewdMsg, deleteMsg } = require("../controllers/messagesControllers")
 
 //MESSAGE
 messagesRouter.put('/viewd', checkAuth, viewdMsg)

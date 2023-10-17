@@ -2,7 +2,7 @@ const { Router } = require('express');
 const userRouter = Router();
 
 const { checkAuth } = require("../middlewares/auth")
-const { getUsers,getUserRole, chageStateUser, registerUser, removeUser, updateUser } = require("../controllers/users")
+const { getUsers, getUserRole, chageStateUser, registerUser, removeUser, updateUser } = require("../controllers/usersControllers")
 
 userRouter.get('/', checkAuth, getUsers)
 userRouter.get('/role', checkAuth, getUserRole)
