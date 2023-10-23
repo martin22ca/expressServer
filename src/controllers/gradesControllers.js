@@ -3,10 +3,14 @@ pool.connect();
 
 const getGrades = async (req, res) => {
     try {
-        const gradesQ = await pool.query("select g.id as id_grade,u.id as id_user, school_year,school_section,concat(pd.first_name,' ',pd.last_name) as user from grade g " +
-            "left join users u ON g.id_user = u.id " +
-            "left  join personal_data pd on u.id_personal = pd.id " +
-            "order by school_year asc")
+        const gradesQ = await pool.query("SELECT g.id AS id_grade, school_year,school_section, STRING_AGG(CONCAT(pd.first_name, ' ', pd.last_name), ',  ') AS users " +
+            "FROM grade g " +
+            "LEFT JOIN users_grades ug ON ug.id_grade = g.id " +
+            "LEFT JOIN users u ON ug.id_user = u.id " +
+            "LEFT JOIN personal_data pd ON u.id_personal = pd.id " +
+            "GROUP BY g.id, school_year, school_section " +
+            "ORDER BY school_year ASC; ")
+
         var grades = gradesQ.rows
         res.status(200).send({
             grades
@@ -23,7 +27,7 @@ const getGrades = async (req, res) => {
 
 const homeClasses = async (req, res) => {
     try {
-        const { userId } = req.query;
+        const { idUser } = req.query;
 
         const date = new Date();
         let day = date.getDate();
@@ -31,16 +35,20 @@ const homeClasses = async (req, res) => {
         let year = date.getFullYear();
         const currentDate = `${day}-${month}-${year}`
 
-        const queryAtt = "SELECT sc.id as sc,sc.school_year,sc.school_section ,sum(case a.present when true then 1 else 0 end) as present,count(s.id) as total " +
-            "FROM student_class sc left join students s on s.id_student_class = sc.id " +
-            "left join attendances a on a.id_student = s.id and a.att_date  = $1 " +
-            "where sc.id_employee = $2 group by sc.id ORDER BY school_year desc"
+        const queryAtt = "select g.id from  grade g inner join users_grades ug ON g.id = ug.id_grade where ug.id_user = $1 " +
+            "and g.id not in (select id_grade from roll_call rc where att_date = $2)"
 
-        const foundClasses = await pool.query(queryAtt, [currentDate, userId,])
-        var schoolClasses = foundClasses.rows
+        const rollCallQ = await pool.query(queryAtt, [idUser, currentDate])
+        const rollCalls = rollCallQ.rows
+
+        for (const roll of rollCalls) {
+            await pool.query("insert into roll_call (id_grade,att_date) values ($1,$2)", [roll.id, currentDate])
+        }
+        const gradesQ = await pool.query("select * from roll_call rc inner join grade g ON rc.id_grade = g.id inner join users_grades ug ON g.id = ug.id_grade " +
+            "where ug.id_user =$1 and rc.att_date =$2 order by rc.status", [idUser, currentDate])
 
         res.status(200).send({
-            schoolClasses
+            "grades": gradesQ.rows
         });
         return null
 
@@ -58,7 +66,7 @@ const gradesUser = async (req, res) => {
     try {
         const { idUser } = req.query;
 
-        let queryAtt = `select *,concat(school_year,' "',school_section,'"') as title  from grade where id_user =$1 order by school_year asc `
+        let queryAtt = `select *,concat(school_year,' "',school_section,'"') as title from grade g inner join users_grades ug ON ug.id_grade = g.id where ug.id_user = $1 order by school_year asc `
         if (idUser <= 1) {
             queryAtt = `select *,concat(school_year,' "',school_section,'"') as title, $1 from grade order by school_year asc`
         }
@@ -69,7 +77,7 @@ const gradesUser = async (req, res) => {
             grades
         });
         return null
-
+        student_class
 
     }
     catch (error) {
@@ -81,26 +89,17 @@ const gradesUser = async (req, res) => {
 }
 const registerGrade = async (req, res) => {
     try {
-        const date = new Date();
-        const dateDay = date.getDate();
-        const dateMonth = date.getMonth() + 1;
-        const dateYear = date.getFullYear();
-        const currentDate = `${dateDay}-${dateMonth}-${dateYear}`
-
-        const { year, section, idUser } = req.body;
+        const { year, section, idUsers } = req.body;
 
         const checkForClass = await pool.query("select * from grade where school_year = $1 and school_section = $2", [year, section])
         if (checkForClass.rowCount > 0) return res.status(400).json({ 'message': 'Curso ' + year + ' "' + section + '" ya existe.' });
 
-        var query = "insert into grade (school_year,school_section,closed_date) values ($1,$2,$3)"
-        var eleme = [year, section, currentDate]
+        const newGrade = await pool.query("insert into grade (school_year,school_section) values ($1,$2) RETURNING ID", [year, section])
+        const idGrade = newGrade.rows[0].id
 
-        if (idUser != null) {
-            console.log(idUser)
-            query = "insert into grade (school_year,school_section,closed_date,id_user) values ($1,$2,$3,$4)"
-            eleme.push(idUser)
+        for (const idUser of idUsers) {
+            await pool.query("insert into users_grades (id_user,id_grade) values ($1,$2)", [idUser, idGrade])
         }
-        const createClass = await pool.query(query, eleme)
         return res.status(200).json({ 'message': 'Creada nueva Clase con exito!' });
 
 
@@ -123,13 +122,27 @@ const removeGrade = async (req, res) => {
 }
 const updateGrade = async (req, res) => {
     try {
-        const { idGrade, year, section, idUser } = req.body;
-        console.log(req.body)
+        const { idGrade, year, section, idUsers } = req.body;
+        // Fetch the current users associated with the grade
+        const currentUsers = await pool.query("SELECT id_user FROM users_grades WHERE id_grade = $1", [idGrade]);
+        const currentUsersArray = currentUsers.rows.map(row => row.id_user);
 
-        const updateClass = await pool.query("update grade set school_year = $1, school_section  = $2, id_user = $3 where id = $4", [year, section, idUser, idGrade])
+        // Determine users to add and users to remove
+        const usersToAdd = idUsers.filter(idUser => !currentUsersArray.includes(idUser));
+        const usersToRemove = currentUsersArray.filter(idUser => !idUsers.includes(idUser));
+
+        // Add new users
+        for (const idUser of usersToAdd) {
+            await pool.query("INSERT INTO users_grades (id_grade, id_user) VALUES ($1, $2)", [idGrade, idUser]);
+        }
+
+        // Remove old users
+        for (const idUser of usersToRemove) {
+            await pool.query("DELETE FROM users_grades WHERE id_grade = $1 AND id_user = $2", [idGrade, idUser]);
+        }
+
+        await pool.query("update grade set school_year = $1, school_section  = $2 where id = $3", [year, section, idGrade])
         return res.status(200).json({ 'message': 'Actualizado Curso con exito!' });
-
-
     } catch (error) {
         console.log(error)
         return res.status(400).json({ 'message': 'error in database deletion.' });
@@ -138,17 +151,15 @@ const updateGrade = async (req, res) => {
 
 const gradeInfo = async (req, res) => {
     try {
-        const { classId } = req.query;
+        const { idGrade } = req.query;
 
-        const queryAtt = "select dt.id_stud,pd.dni,pd.first_name ,pd.last_name,present,missing,late,total " +
-            "from personal_data pd inner join (SELECT s.id as id_stud ,s.id_personal as id_pd,sum(case a.present when true then 1 else 0 end) as present ,sum(case a.present when true then 0 else 1 end) as missing ,sum(case a.late when true then 1 else 0 end) as late,  count(a.id) as total " +
-            "FROM students s " +
-            "inner join student_class sc on s.id_student_class = sc.id " +
-            "left join attendances a on a.id_student = s.id " +
-            "where sc.id = $1 " +
-            "group by s.id )dt on pd.id = dt.id_pd"
+        const queryAtt = "select pd.dni,pd.first_name,pd.last_name,sum(case a.present when true then 1 else 0 end) as present, sum(case a.late when true then 1 else 0 end) as late,  count(a.id) as total " +
+            "from students s inner join personal_data pd ON s.id_personal = pd.id " +
+            "inner join recognition r on pd.id_recog = r.id " +
+            "inner join attendances a on a.id_recog = r.id " +
+            "where s.id_grade  = $1 group by pd.id "
 
-        const gradeInfoQ = await pool.query(queryAtt, [classId])
+        const gradeInfoQ = await pool.query(queryAtt, [idGrade])
         const gradeInfo = gradeInfoQ.rows
 
         res.status(200).send({
@@ -165,6 +176,27 @@ const gradeInfo = async (req, res) => {
         })
     }
 }
+const gradePrecept = async (req, res) => {
+    try {
+        const { idGrade } = req.query;
+
+        const gradeUsersQ = await pool.query("select id_user from users_grades ug  where  id_grade = $1", [idGrade])
+        const gradeUsers = gradeUsersQ.rows
+
+        res.status(200).send({
+            "gradeUsers": gradeUsers,
+        });
+        return null
 
 
-module.exports = { getGrades, homeClasses, gradesUser, gradeInfo, registerGrade, removeGrade, updateGrade }
+    }
+    catch (error) {
+        console.log(error)
+        res.status(403).send({
+            'message': 'Server Error'
+        })
+    }
+}
+
+
+module.exports = { getGrades, homeClasses, gradesUser, gradeInfo, registerGrade, removeGrade, updateGrade, gradePrecept }

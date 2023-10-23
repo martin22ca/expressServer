@@ -14,14 +14,14 @@ const login = async (req, res, next) => {
         }
         const foundUser = await pool.query("SELECT u.id,u.id_role,u.user_name,u.user_password, u.active, pd.first_name,pd.last_name,pd.email  from users u inner join personal_data pd ON u.id_personal = pd.id where u.user_name =$1 ", [username], async (error, results) => {
             if (results.rowCount == 0 || !(await bcrpytjs.compare(password, results.rows[0]['user_password']))) {
-                return res.status(401).send({
+                return res.status(400).send({
                     accessToken: null,
                     message: "Password y/o Username son invalidos"
                 });
             }
             if( !results.rows[0]['active'] ){
                 console.log(results.rows[0]['active'] )
-                return res.status(401).send({
+                return res.status(400).send({
                     message: "Perfil deshabilitado"
                 });
             }
